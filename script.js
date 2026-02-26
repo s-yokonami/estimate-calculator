@@ -630,6 +630,7 @@ function updateConfigBanner() {
 // ===== 履歴機能 =====
 const $historyCard      = document.getElementById('history-card');
 const $historyList      = document.getElementById('history-list');
+const $historyCount     = document.getElementById('history-count');
 const $saveHistoryBtn   = document.getElementById('save-history-btn');
 const $clearHistoryBtn  = document.getElementById('clear-history-btn');
 
@@ -710,9 +711,11 @@ function renderHistory() {
   const list = loadHistory();
   if (list.length === 0) {
     $historyCard.style.display = 'none';
+    $historyCount.textContent = '';
     return;
   }
   $historyCard.style.display = 'block';
+  $historyCount.textContent = `${list.length} / ${HISTORY_MAX_ITEMS}件`;
   $historyList.innerHTML = list.map(buildHistoryItemHTML).join('');
 }
 
