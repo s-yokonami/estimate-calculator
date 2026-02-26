@@ -6,6 +6,7 @@
 // ===== 定数 =====
 const HOURS_PER_DAY = 8; // 1人日 = 8時間
 const CONFIG_STORAGE_KEY = 'estimate-config';
+const INPUT_STORAGE_KEY  = 'estimate-input';
 
 // ===== 設定管理 =====
 
@@ -101,6 +102,53 @@ function loadInputFromUrl() {
 }
 
 /**
+ * 入力値を localStorage に保存する。
+ */
+function saveInputToStorage() {
+  const d = {};
+  const r   = $hourlyRate.value;
+  const a   = $estimatedAmount.value;
+  const h   = $estimatedHours.value;
+  const hd  = $estimatedMandays.value;
+  const ah  = $actualHours.value;
+  const ahd = $actualMandays.value;
+  const m   = $memo.value.trim();
+  if (r)   d.r   = r;
+  if (a)   d.a   = a;
+  if (h)   d.h   = h;
+  if (hd)  d.hd  = hd;
+  if (ah)  d.ah  = ah;
+  if (ahd) d.ahd = ahd;
+  if (m)   d.m   = m;
+  if (Object.keys(d).length) {
+    localStorage.setItem(INPUT_STORAGE_KEY, JSON.stringify(d));
+  } else {
+    localStorage.removeItem(INPUT_STORAGE_KEY);
+  }
+}
+
+/**
+ * localStorage から入力値を復元する。
+ * URL パラメータより優先度が低いため、loadInputFromUrl() より先に呼ぶこと。
+ */
+function loadInputFromStorage() {
+  const stored = localStorage.getItem(INPUT_STORAGE_KEY);
+  if (!stored) return;
+  try {
+    const d = JSON.parse(stored);
+    if (d.r   != null) $hourlyRate.value       = d.r;
+    if (d.a   != null) $estimatedAmount.value  = d.a;
+    if (d.h   != null) $estimatedHours.value   = d.h;
+    if (d.hd  != null) $estimatedMandays.value = d.hd;
+    if (d.ah  != null) $actualHours.value      = d.ah;
+    if (d.ahd != null) $actualMandays.value    = d.ahd;
+    if (d.m   != null) $memo.value             = d.m;
+  } catch (e) {
+    console.warn('入力値の復元に失敗しました:', e);
+  }
+}
+
+/**
  * 現在の設定から配布用 URL を生成する。
  */
 function buildConfigUrl(config) {
@@ -137,6 +185,11 @@ const $gradeToggle      = document.getElementById('grade-toggle');
 const $gradeBody        = document.getElementById('grade-body');
 const $gradeArrow       = document.getElementById('grade-arrow');
 
+const $profitGaugeWrap   = document.getElementById('profit-gauge-wrap');
+const $profitGaugeFill   = document.getElementById('profit-gauge-fill');
+const $profitGaugePct    = document.getElementById('profit-gauge-pct');
+const $profitGaugeMarker = document.getElementById('profit-gauge-marker');
+
 const $resetBtn         = document.getElementById('reset-btn');
 const $memo             = document.getElementById('memo');
 const $copyUrlBtn       = document.getElementById('copy-url-btn');
@@ -171,6 +224,7 @@ function calcProfitInfo() {
   if (!PROFIT_MARGIN()) {
     [$salesAmount, $actualCost, $profitAmount].forEach((el) => { el.textContent = '-'; });
     $profitAlert.style.display = 'none';
+    $profitGaugeWrap.style.display = 'none';
     return;
   }
 
@@ -217,6 +271,24 @@ function calcProfitInfo() {
   } else {
     $profitAmount.textContent = '-';
     $profitAmount.className = 'result-value highlight';
+  }
+
+  // ──── 利益率ゲージ ────
+  if (estimatedAmount > 0 && salesAmount > 0) {
+    $profitGaugeWrap.style.display = 'block';
+    const maxRate  = Math.max(targetRate * 2, 10);
+    const fillPct  = Math.min(100, Math.max(0, (profitRateOnEstimate / maxRate) * 100));
+    const markPct  = Math.min(100, (targetRate / maxRate) * 100);
+    $profitGaugeFill.style.width             = `${fillPct}%`;
+    $profitGaugeMarker.style.left            = `${markPct}%`;
+    $profitGaugeFill.style.backgroundColor   =
+      profit < 0    ? 'var(--color-negative)' :
+      isWarning     ? 'var(--color-warning)'  : 'var(--color-positive)';
+    const pctClass = profit < 0 ? 'negative' : isWarning ? 'warning' : 'positive';
+    $profitGaugePct.className   = pctClass;
+    $profitGaugePct.textContent = `${profitRateOnEstimate.toFixed(1)}%　目標 ${targetRate.toFixed(0)}%`;
+  } else {
+    $profitGaugeWrap.style.display = 'none';
   }
 
   // ──── アラート ────
@@ -309,6 +381,7 @@ function calcGradeAnalysis() {
 function recalculateAll() {
   calcProfitInfo();
   calcGradeAnalysis();
+  saveInputToStorage();
   // 入力が変わったら生成済みURLをリセット（古いURLの誤コピー防止）
   if ($shareUrlRow) {
     $shareUrlRow.style.display = 'none';
@@ -437,6 +510,8 @@ $shareCopyUrl.addEventListener('click', () => {
 $resetBtn.addEventListener('click', () => {
   [$hourlyRate, $estimatedAmount, $estimatedHours, $estimatedMandays, $actualHours, $actualMandays]
     .forEach((el) => { el.value = ''; });
+  $memo.value = '';
+  localStorage.removeItem(INPUT_STORAGE_KEY);
   recalculateAll();
 });
 
@@ -555,6 +630,7 @@ $gradeBody.classList.add('expanded');
 $gradeArrow.style.transform = 'rotate(90deg)';
 
 updateConfigBanner();
+loadInputFromStorage(); // localStorageから復元（URLパラメータで上書きされる）
 loadInputFromUrl();
 recalculateAll();
 

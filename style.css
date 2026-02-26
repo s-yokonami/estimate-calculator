@@ -871,6 +871,60 @@ body {
   width: 100%;
 }
 
+/* ===== 利益率ゲージ ===== */
+.profit-gauge-wrap {
+  margin-top: 10px;
+}
+
+.profit-gauge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--color-text-weak);
+  margin-bottom: 5px;
+}
+
+#profit-gauge-pct {
+  font-weight: 700;
+  font-feature-settings: 'tnum';
+}
+
+#profit-gauge-pct.positive { color: var(--color-positive); }
+#profit-gauge-pct.warning  { color: var(--color-warning); }
+#profit-gauge-pct.negative { color: var(--color-negative); }
+
+.profit-gauge-outer {
+  position: relative;
+  height: 8px;
+}
+
+.profit-gauge-track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.profit-gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease, background-color 0.4s ease;
+  background-color: var(--color-positive);
+}
+
+.profit-gauge-marker {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background: var(--color-text-weak);
+  opacity: 0.55;
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
 /* ===== フッター ===== */
 .footer {
   text-align: center;
@@ -895,5 +949,53 @@ body {
 
   .config-grade-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ===== ダークモード ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0f1117;
+    --color-surface: #1a1d27;
+    --color-border: #2d3244;
+    --color-border-light: #242840;
+    --color-text: #e2e8f0;
+    --color-text-weak: #94a3b8;
+    --color-text-placeholder: #4f617a;
+    --color-accent: #6090ff;
+    --color-accent-hover: #4a78ff;
+    --color-input-bg: #141720;
+    --color-input-focus-bg: #1e2235;
+
+    --color-warning-bg: #271d07;
+    --color-warning-border: #7a4f00;
+    --color-warning-text: #fbbf24;
+
+    --color-status-warn-bg: #92400e;
+    --color-status-danger-bg: #9a3412;
+    --color-status-over-bg: #991b1b;
+
+    --shadow: 0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+
+  /* ホバー時のハードコードカラーをダークに */
+  .btn-reset:hover {
+    background: rgba(239, 68, 68, 0.12);
+  }
+
+  .url-share-warning {
+    color: #fbbf24;
+  }
+
+  .url-share-warning svg {
+    stroke: #fbbf24;
+  }
+
+  .modal {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .section-toggle:hover {
+    background: rgba(255, 255, 255, 0.04);
   }
 }
