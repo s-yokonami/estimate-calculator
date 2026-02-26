@@ -57,12 +57,16 @@ function buildInputUrl() {
   const a  = parseFloat($estimatedAmount.value);
   const h  = parseFloat($estimatedHours.value);
   const hd = parseFloat($estimatedMandays.value);
+  const ah = parseFloat($actualHours.value);
+  const ahd = parseFloat($actualMandays.value);
   const m  = $memo.value.trim();
-  if (r)  d.r  = r;
-  if (a)  d.a  = a;
-  if (h)  d.h  = h;
-  if (hd) d.hd = hd;
-  if (m)  d.m  = m;
+  if (r)   d.r   = r;
+  if (a)   d.a   = a;
+  if (h)   d.h   = h;
+  if (hd)  d.hd  = hd;
+  if (ah)  d.ah  = ah;
+  if (ahd) d.ahd = ahd;
+  if (m)   d.m   = m;
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(d))));
   const base = `${location.origin}${location.pathname}?v=${encoded}`;
   // 設定がある場合は #config= を付与（受信者のページ読み込み時にアドレスバーから即除去される）
@@ -82,11 +86,13 @@ function loadInputFromUrl() {
   if (!v) return;
   try {
     const d = JSON.parse(decodeURIComponent(escape(atob(v))));
-    if (d.r  != null) $hourlyRate.value       = d.r;
-    if (d.a  != null) $estimatedAmount.value  = d.a;
-    if (d.h  != null) $estimatedHours.value   = d.h;
-    if (d.hd != null) $estimatedMandays.value = d.hd;
-    if (d.m  != null) $memo.value             = d.m;
+    if (d.r   != null) $hourlyRate.value       = d.r;
+    if (d.a   != null) $estimatedAmount.value  = d.a;
+    if (d.h   != null) $estimatedHours.value   = d.h;
+    if (d.hd  != null) $estimatedMandays.value = d.hd;
+    if (d.ah  != null) $actualHours.value      = d.ah;
+    if (d.ahd != null) $actualMandays.value    = d.ahd;
+    if (d.m   != null) $memo.value             = d.m;
     // URLから ?v= を除去（アドレスバーをきれいに保つ）
     history.replaceState(null, '', location.pathname);
   } catch (e) {
@@ -116,7 +122,8 @@ const $hourlyRate       = document.getElementById('hourly-rate');
 const $estimatedAmount  = document.getElementById('estimated-amount');
 const $estimatedHours   = document.getElementById('estimated-hours');
 const $estimatedMandays = document.getElementById('estimated-mandays');
-
+const $actualHours      = document.getElementById('actual-hours');
+const $actualMandays    = document.getElementById('actual-mandays');
 
 const $salesAmount      = document.getElementById('sales-amount');
 const $actualCost       = document.getElementById('actual-cost');
@@ -169,12 +176,14 @@ function calcProfitInfo() {
 
   const estimatedAmount = parseFloat($estimatedAmount.value) || 0;
   const estimatedHours  = parseFloat($estimatedHours.value)  || 0;
+  const actualHours     = parseFloat($actualHours.value)     || 0;
   const hourlyRate      = parseFloat($hourlyRate.value)      || 0;
 
   // 販売見積金額 = 見積金額 × 利益係数
   const salesAmount = estimatedAmount * PROFIT_MARGIN();
-  // 制作費 = 予定時間 × 工数単価
-  const actualCost  = estimatedHours * hourlyRate;
+  // 制作費 = 実績時間 × 工数単価（実績時間未入力の場合は予定時間で代替）
+  const costHours   = actualHours > 0 ? actualHours : estimatedHours;
+  const actualCost  = costHours * hourlyRate;
   // 見込利益 = 販売見積金額 - 制作費
   const profit      = salesAmount - actualCost;
   // 利益率 = 見込利益 ÷ 見積金額
@@ -230,7 +239,11 @@ function calcGradeAnalysis() {
 
   const estimatedAmount = parseFloat($estimatedAmount.value) || 0;
   const estimatedHours  = parseFloat($estimatedHours.value)  || 0;
+  const actualHours     = parseFloat($actualHours.value)     || 0;
   const hourlyRate      = parseFloat($hourlyRate.value)      || 0;
+
+  // 制作費・見込利益の計算に使う時間（実績時間優先、未入力なら予定時間）
+  const costHours = actualHours > 0 ? actualHours : estimatedHours;
 
   if (estimatedAmount === 0) {
     $gradeGrid.innerHTML = '<div class="result-placeholder">見積金額を入力すると等級別比較が表示されます</div>';
@@ -249,24 +262,17 @@ function calcGradeAnalysis() {
   // 予算内工数（見積金額 ÷ 各等級時給）
   const budgetRow = grades.map(g => {
     const budgetHours = estimatedAmount / gradeRates[g];
-    const diff        = budgetHours - estimatedHours;
-    const diffHtml    = estimatedHours > 0
-      ? `<span class="grade-diff ${diff >= 0 ? 'positive' : 'negative'}">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}h</span>` : '';
-    return `<td>${budgetHours.toFixed(1)}h ${diffHtml}</td>`;
+    return `<td>${budgetHours.toFixed(1)}h</td>`;
   }).join('');
 
-  // 制作費・見込利益（予定時間がある場合のみ）
-  const hasCostRows = estimatedHours > 0;
+  // 制作費・見込利益（実績時間 or 予定時間がある場合のみ）
+  const hasCostRows = costHours > 0;
   const costRow = !hasCostRows ? '' : `
     <tr>
       <th class="grade-row-label">制作費</th>
       ${grades.map(g => {
-        const cost     = estimatedHours * gradeRates[g];
-        const costNorm = estimatedHours * hourlyRate;
-        const diff     = cost - costNorm;
-        const diffHtml = hourlyRate > 0
-          ? `<span class="grade-diff">${diff >= 0 ? '+' : ''}${Math.round(diff).toLocaleString('ja-JP')}円</span>` : '';
-        return `<td>${formatYen(cost)} ${diffHtml}</td>`;
+        const cost = costHours * gradeRates[g];
+        return `<td>${formatYen(cost)}</td>`;
       }).join('')}
     </tr>`;
 
@@ -274,7 +280,7 @@ function calcGradeAnalysis() {
     <tr>
       <th class="grade-row-label">見込利益</th>
       ${grades.map(g => {
-        const cost    = estimatedHours * gradeRates[g];
+        const cost    = costHours * gradeRates[g];
         const profit  = salesAmount - cost;
         const isWarn  = profit > 0 && (profit / estimatedAmount) * 100 < targetRate - 0.05;
         const cls     = profit < 0 ? 'negative' : isWarn ? 'warning' : 'positive';
@@ -386,7 +392,21 @@ $salesAmount.addEventListener('input', () => {
   recalculateAll();
 });
 
-// ── 等級プリセットボタン ──
+// ── 実績時間（時間）が変わったら人日を再計算 ──
+$actualHours.addEventListener('input', () => {
+  const hours = parseFloat($actualHours.value) || 0;
+  $actualMandays.value = hours > 0 ? (hours / HOURS_PER_DAY).toFixed(2) : '';
+  recalculateAll();
+});
+
+// ── 実績時間（人日）が変わったら時間を再計算 ──
+$actualMandays.addEventListener('input', () => {
+  const mandays = parseFloat($actualMandays.value) || 0;
+  const hours   = mandays * HOURS_PER_DAY;
+  $actualHours.value = hours > 0 ? hours.toFixed(1) : '';
+  recalculateAll();
+});
+
 // ── 折りたたみトグル ──
 function setupToggle(toggleBtn, body, arrow) {
   toggleBtn.addEventListener('click', () => {
@@ -415,7 +435,7 @@ $shareCopyUrl.addEventListener('click', () => {
 
 // ── リセット ──
 $resetBtn.addEventListener('click', () => {
-  [$hourlyRate, $estimatedAmount, $estimatedHours, $estimatedMandays]
+  [$hourlyRate, $estimatedAmount, $estimatedHours, $estimatedMandays, $actualHours, $actualMandays]
     .forEach((el) => { el.value = ''; });
   recalculateAll();
 });
@@ -536,6 +556,7 @@ $gradeArrow.style.transform = 'rotate(90deg)';
 
 updateConfigBanner();
 loadInputFromUrl();
+recalculateAll();
 
 if (appConfig?.defaultHourlyRate && !$hourlyRate.value) {
   $hourlyRate.value = appConfig.defaultHourlyRate;
