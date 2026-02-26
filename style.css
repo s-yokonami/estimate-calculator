@@ -925,6 +925,171 @@ body {
   transform: translateX(-50%);
 }
 
+/* ===== 過去案件の履歴カード ===== */
+.history-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.history-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.history-card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-weak);
+}
+
+.btn-clear-history {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.btn-clear-history:hover {
+  color: var(--color-negative);
+  background: rgba(239, 68, 68, 0.07);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--color-border-light);
+  gap: 12px;
+  transition: background var(--transition);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-item:hover {
+  background: var(--color-bg);
+}
+
+.history-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.history-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item-meta {
+  font-size: 11px;
+  color: var(--color-text-placeholder);
+}
+
+.history-item-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.history-chip {
+  display: inline-block;
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--color-text-weak);
+  font-feature-settings: 'tnum';
+  white-space: nowrap;
+}
+
+.history-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.history-btn-restore {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+
+.history-btn-restore:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.history-btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--color-text-placeholder);
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+
+.history-btn-delete:hover {
+  border-color: var(--color-negative);
+  color: var(--color-negative);
+  background: rgba(239, 68, 68, 0.07);
+}
+
+/* 保存ボタン */
+.btn-save-history {
+  background: none;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-weak);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-save-history:hover {
+  border-color: var(--color-positive);
+  color: var(--color-positive);
+  background: rgba(16, 185, 129, 0.06);
+}
+
 /* ===== フッター ===== */
 .footer {
   text-align: center;

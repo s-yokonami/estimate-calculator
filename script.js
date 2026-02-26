@@ -5,8 +5,10 @@
 
 // ===== 定数 =====
 const HOURS_PER_DAY = 8; // 1人日 = 8時間
-const CONFIG_STORAGE_KEY = 'estimate-config';
-const INPUT_STORAGE_KEY  = 'estimate-input';
+const CONFIG_STORAGE_KEY   = 'estimate-config';
+const INPUT_STORAGE_KEY    = 'estimate-input';
+const HISTORY_STORAGE_KEY  = 'estimate-history';
+const HISTORY_MAX_ITEMS    = 20;
 
 // ===== 設定管理 =====
 
@@ -625,6 +627,140 @@ function updateConfigBanner() {
   $configBanner.style.display = appConfig ? 'none' : 'flex';
 }
 
+// ===== 履歴機能 =====
+const $historyCard      = document.getElementById('history-card');
+const $historyList      = document.getElementById('history-list');
+const $saveHistoryBtn   = document.getElementById('save-history-btn');
+const $clearHistoryBtn  = document.getElementById('clear-history-btn');
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+  } catch { return []; }
+}
+
+function persistHistory(list) {
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(list));
+}
+
+/** 現在の入力を履歴に追加する（最大 HISTORY_MAX_ITEMS 件） */
+function addToHistory() {
+  const r   = parseFloat($hourlyRate.value)      || null;
+  const a   = parseFloat($estimatedAmount.value) || null;
+  const h   = parseFloat($estimatedHours.value)  || null;
+  const ah  = parseFloat($actualHours.value)     || null;
+  const m   = $memo.value.trim() || null;
+
+  if (!a && !h && !r) {
+    alert('保存する入力がありません。');
+    return;
+  }
+
+  const entry = {
+    id: Date.now(),
+    savedAt: new Date().toISOString(),
+    m, r,
+    a:   parseFloat($estimatedAmount.value)  || null,
+    h:   parseFloat($estimatedHours.value)   || null,
+    hd:  parseFloat($estimatedMandays.value) || null,
+    ah:  parseFloat($actualHours.value)      || null,
+    ahd: parseFloat($actualMandays.value)    || null,
+    sa:  parseFloat($salesAmount.value)      || null,
+  };
+
+  const list = loadHistory();
+  list.unshift(entry);
+  if (list.length > HISTORY_MAX_ITEMS) list.splice(HISTORY_MAX_ITEMS);
+  persistHistory(list);
+  renderHistory();
+
+  $saveHistoryBtn.textContent = '保存しました！';
+  setTimeout(() => { $saveHistoryBtn.textContent = '履歴に保存'; }, 2000);
+}
+
+/** 履歴エントリ1件をUIに描画するHTML文字列を返す */
+function buildHistoryItemHTML(entry) {
+  const date = new Date(entry.savedAt);
+  const dateStr = `${date.getFullYear()}/${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+  const title = entry.m || '（メモなし）';
+  const chips = [];
+  if (entry.r)  chips.push(`単価 ${entry.r.toLocaleString('ja-JP')}円`);
+  if (entry.a)  chips.push(`見積 ${Math.round(entry.a).toLocaleString('ja-JP')}円`);
+  if (entry.h)  chips.push(`予定 ${entry.h}h`);
+  if (entry.ah) chips.push(`実績 ${entry.ah}h`);
+  const chipsHTML = chips.map(c => `<span class="history-chip">${c}</span>`).join('');
+  return `
+    <div class="history-item" data-id="${entry.id}">
+      <div class="history-item-body">
+        <div class="history-item-title">${title}</div>
+        <div class="history-item-meta">${dateStr}</div>
+        <div class="history-item-chips">${chipsHTML}</div>
+      </div>
+      <div class="history-item-actions">
+        <button type="button" class="history-btn-restore" data-id="${entry.id}">復元</button>
+        <button type="button" class="history-btn-delete" data-id="${entry.id}" title="削除">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+}
+
+/** 履歴カードを再描画する */
+function renderHistory() {
+  const list = loadHistory();
+  if (list.length === 0) {
+    $historyCard.style.display = 'none';
+    return;
+  }
+  $historyCard.style.display = 'block';
+  $historyList.innerHTML = list.map(buildHistoryItemHTML).join('');
+}
+
+/** 指定 id の履歴を削除する */
+function deleteHistoryEntry(id) {
+  const list = loadHistory().filter(e => e.id !== id);
+  persistHistory(list);
+  renderHistory();
+}
+
+/** 履歴エントリをフォームに復元する */
+function restoreFromHistory(entry) {
+  $hourlyRate.value       = entry.r   ?? '';
+  $estimatedAmount.value  = entry.a   ?? '';
+  $estimatedHours.value   = entry.h   ?? '';
+  $estimatedMandays.value = entry.hd  ?? '';
+  $actualHours.value      = entry.ah  ?? '';
+  $actualMandays.value    = entry.ahd ?? '';
+  $memo.value             = entry.m   ?? '';
+  recalculateAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 履歴に保存ボタン
+$saveHistoryBtn.addEventListener('click', addToHistory);
+
+// 履歴カードのクリックを委譲
+$historyList.addEventListener('click', (e) => {
+  const restoreBtn = e.target.closest('.history-btn-restore');
+  const deleteBtn  = e.target.closest('.history-btn-delete');
+  if (restoreBtn) {
+    const id = Number(restoreBtn.dataset.id);
+    const entry = loadHistory().find(e => e.id === id);
+    if (entry) restoreFromHistory(entry);
+  }
+  if (deleteBtn) {
+    const id = Number(deleteBtn.dataset.id);
+    deleteHistoryEntry(id);
+  }
+});
+
+// すべて削除
+$clearHistoryBtn.addEventListener('click', () => {
+  if (!confirm(`保存済みの履歴をすべて削除しますか？`)) return;
+  localStorage.removeItem(HISTORY_STORAGE_KEY);
+  renderHistory();
+});
+
 // ===== 初期表示 =====
 $gradeBody.classList.add('expanded');
 $gradeArrow.style.transform = 'rotate(90deg)';
@@ -633,6 +769,7 @@ updateConfigBanner();
 loadInputFromStorage(); // localStorageから復元（URLパラメータで上書きされる）
 loadInputFromUrl();
 recalculateAll();
+renderHistory();
 
 if (appConfig?.defaultHourlyRate && !$hourlyRate.value) {
   $hourlyRate.value = appConfig.defaultHourlyRate;

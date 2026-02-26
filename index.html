@@ -146,6 +146,7 @@
         <!-- リセットボタン -->
         <div class="footer-actions">
           <button type="button" class="btn-reset" id="reset-btn">入力をリセット</button>
+          <button type="button" class="btn-save-history" id="save-history-btn">履歴に保存</button>
           <button type="button" class="btn-copy-url" id="copy-url-btn">共有URLを生成</button>
           <div class="share-url-row" id="share-url-row" style="display:none;">
             <div class="share-url-controls">
@@ -158,6 +159,18 @@
             </p>
           </div>
         </div>
+      </div>
+
+      <!-- 過去案件の履歴 -->
+      <div class="history-card" id="history-card" style="display:none;">
+        <div class="history-card-header">
+          <h2 class="history-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            過去の案件
+          </h2>
+          <button type="button" class="btn-clear-history" id="clear-history-btn">すべて削除</button>
+        </div>
+        <div id="history-list"></div>
       </div>
     </main>
 
